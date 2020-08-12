@@ -7,7 +7,7 @@ class Player(pg.sprite.Sprite):
         self.groups = game.all_sprites
         pg.sprite.Sprite.__init__(self, self.groups)
         self.game = game
-        self.image = pg.image.load("images/player tile.png").convert_alpha()
+        self.image = pg.image.load("images/overlay player.png").convert_alpha()
         self.rect = self.image.get_rect()
         self.x = x
         self.y = y

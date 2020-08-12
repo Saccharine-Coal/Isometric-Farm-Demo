@@ -24,8 +24,10 @@ class Game:
         """Initialize all variables and do all the setup for a new game."""
         self.all_sprites = pg.sprite.Group()
         self.tiles = pg.sprite.Group()
-        self.map_data = self.map.generate_map_data()
-        self._set_grid(self.map_data)
+        self.map_background_data = self.map.generate_map_data_blank()
+        self._set_grid(self.map_background_data)
+        self.map_foreground_data = self.map.generate_map_data()
+        self._set_grid(self.map_foreground_data)
         self.player = Player(self, 10, 10)
         self.camera = Camera(self.map.width, self.map.height)
 
@@ -35,11 +37,13 @@ class Game:
                 if tile == 0:
                     tile_data = 'pixel dirt square'
                 if tile == 1:
-                    tile_data = 'pixel square grass'
+                    tile_data = 'overlay seed' #pixel square grass
                 if tile == 2:
-                    tile_data = 'pixel square flower'
+                    tile_data = 'overlay crop1' #pixel square flower
                 if tile == 3:
-                    tile_data = 'pixel square tree'
+                    tile_data = 'overlay crop2' #pixel square tree
+                if tile == 4:
+                    tile_data = 'overlay dirt'
                 Tile(self, tile_data, row_nb, col_nb)
 
     def run(self):
@@ -64,10 +68,10 @@ class Game:
         self.all_sprites.update()
         self.camera.update(self.player)
 
-    def _update_background(self, x, y):
+    def _update_foreground(self, x, y):
         """Will update the tile data for the background."""
-        self.map_data[x][y] = 0
-        self._set_grid(self.map_data)
+        self.map_foreground_data[x][y] = 4
+        self._set_grid(self.map_foreground_data)
 
     def draw(self):
         """Draw the screen."""
@@ -94,7 +98,7 @@ class Game:
                     self.player.move(dy=1)
                 if event.key == pg.K_RETURN:
                     x, y = self.player.current_position()
-                    self._update_background(x, y)
+                    self._update_foreground(x, y)
 
 
 # Create game object.
