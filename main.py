@@ -8,6 +8,8 @@ from sprites import *
 from generators import *
 from camera import *
 from converter import *
+import threading
+import time
 
 
 class Game:
@@ -19,16 +21,29 @@ class Game:
         pg.display.set_caption(TITLE)
         self.clock = pg.time.Clock()
         pg.key.set_repeat(500, 100)
-        self.map = Generate()
+        self.gen = Generate()
         self.iso = Converter()
+        self.interval = 5
+
+    def _run_thread(self):
+        """Method that runs forever."""
+        while True:
+            # Do something
+            print('Thread Running!')
+            self.grow()
+            time.sleep(self.interval)
+
 
     def new(self):
         """Initialize all variables and do all the setup for a new game."""
         self.all_sprites = pg.sprite.Group()
         self.tiles = pg.sprite.Group()
-        self.map_background_data = self.map.generate_map_data_blank()
+        self.grid_background = Grid(self, 2, W, H)
+        self.grid_foreground = Grid(self, 10, W, H)
         self.player = Player(self, 2, 2)
-        self.camera = Camera(self.map.width, self.map.height)
+        self.camera = Camera(self.grid_background.width, self.grid_background.height)
+        thread = threading.Thread(target=self._run_thread, args=())
+        thread.start()                                  # Start the execution
 
     def run(self):
         """Game loop."""
@@ -49,34 +64,19 @@ class Game:
 
     def update(self):
         # Update everything here.
+        self.grid_background.check_update_grid()
+        self.grid_foreground.check_update_grid()
         self.all_sprites.update()
         self.camera.update(self.player)
 
     def draw(self):
         """Draw the screen."""
         self.screen.fill(BGCOLOR)
-        self._draw_tiles(self.map_background_data)
         for tile in self.tiles:
             self.screen.blit(tile.image, self.camera.apply(tile))
         for sprite in self.all_sprites:
             self.screen.blit(sprite.image, self.camera.apply(sprite))
         pg.display.flip()
-
-    def _draw_tiles(self, map_data):
-        """Draws individual tiles, this creates a new object for each tile."""
-        for row_nb, row in enumerate(map_data):
-            for col_nb, tile in enumerate(row):
-                if tile == 0:
-                    tile_data = '128x128 green tile'
-                if tile == 1:
-                    tile_data = 'overlay seed tile' #pixel square grass
-                if tile == 2:
-                    tile_data = 'overlay flower1 tile' #pixel square flower
-                if tile == 3:
-                    tile_data = 'overlay flower2 tile' #pixel square tree
-                if tile == 4:
-                    tile_data = 'dirt tile'
-                Tile(self, tile_data, row_nb, col_nb)
 
     def events(self):
         """Catch all events here."""
@@ -94,6 +94,21 @@ class Game:
                     self.player.move(dy=-1)
                 if event.key == pg.K_DOWN:
                     self.player.move(dy=1)
+                if event.key == pg.K_RETURN:
+                    x, y = self.player.current_position()
+                    self.grid_background.update_tile(2, x, y)
+                    self.grid_foreground.update_tile(4, x, y)
+                    self.grid_foreground.grid_data[x][y].grow = True
+
+    def grow(self):
+        for row_nb, row in enumerate(self.grid_foreground.grid_data):
+            for col_nb, tile in enumerate(row):
+                if tile.grow:
+                    result = self.gen.generate_random_number(0, 1)
+                    if result == 0:
+                        tile.data += 1
+                        self.grid_foreground.update_tile(tile.data, row_nb, col_nb)
+
 
 # Create game object.
 g = Game()
