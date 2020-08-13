@@ -2,6 +2,7 @@ import pygame as pg
 
 from settings import *
 from converter import *
+import random
 
 class Player(pg.sprite.Sprite):
     """Class that holds everything for the Player Character."""
@@ -9,7 +10,7 @@ class Player(pg.sprite.Sprite):
         self.groups = game.all_sprites
         pg.sprite.Sprite.__init__(self, self.groups)
         self.game = game
-        self.image = pg.image.load("images/128x128 player tile.png").convert_alpha()
+        self.image = pg.image.load("images/overlay player trans.png").convert_alpha()
         self.rect = self.image.get_rect()
         self.x = x
         self.y = y
@@ -22,7 +23,7 @@ class Player(pg.sprite.Sprite):
 
     def update(self):
         """Updates the isometric position of the player."""
-        print(f'''player cart pos: {self.x}, {self.y}''')
+        #print(f'''player cart pos: {self.x}, {self.y}''')
         self.rect.x, self.rect.y = self.iso.convert_cart(self.x, self.y)
 
     def current_position(self):
@@ -32,48 +33,78 @@ class Player(pg.sprite.Sprite):
 
 class Tile(pg.sprite.Sprite):
     """All entities that make up the grid background is currently handled in this class."""
-    def __init__(self, game, tile_data, x, y):
-        self.groups = game.tiles #, game.all_sprites
-        pg.sprite.Sprite.__init__(self, self.groups)
+    def __init__(self, grid, game, data, x, y):
+        self.data = data
+        self.flag = False
+        self.sprite_init = True
+        self.grow = False
         self.game = game
-        self.image = pg.image.load(f"""images/{tile_data}.png""").convert_alpha()
+        self.x, self.y = x, y
+        if self.data != 0:
+            self.init_sprite()
+            self.load_sprite()
+
+    def init_sprite(self):
+        self.groups = self.game.tiles #, game.all_sprites'''
+        pg.sprite.Sprite.__init__(self, self.groups)
+        self.sprite_init = False
+
+    def load_sprite(self):
+        self.check_data()
+        self.image = pg.image.load(f"""images/{self.tile_data}.png""").convert_alpha()
         self.rect = self.image.get_rect()
-        self.x = x
-        self.y = y
         self.iso = Converter()
         # Convert cartesian to isometric coordinates
-        iso_x, iso_y = self.iso.convert_cart(self.x, self.y)
-        self.rect.x = iso_x
-        self.rect.y = iso_y
+        self.rect.x, self.rect.y = self.iso.convert_cart(self.x, self.y)
 
-'''class Grid(pg.sprite.Sprite, Game):
-    """All entities that make up the grid background is currently handled in this class."""
-    def __init__(self, game, map_data):
-        self.groups = game.tiles , game.all_sprites
-        pg.sprite.Sprite.__init__(self, self.groups)
-        self.game = game
-        self.iso = Converter()
-        self.map_data = map_data
+    def check_data(self):
+        if self.data == 1:
+            self.tile_data = 'overlay tree'
+        if self.data == 2:
+            self.tile_data = 'pixel dirt square'
+        if self.data == 3:
+            self.tile_data = 'pixel square grass'
+        if self.data == 4:
+            self.tile_data = 'overlay seed'
+        if self.data == 5:
+            self.tile_data = 'overlay crop1'
+        if self.data == 6:
+            self.tile_data = 'overlay crop2'
 
-        for row_nb, row in enumerate(self.map_data):
+    def update_tile_image(self):
+        if self.sprite_init:
+            self.init_sprite()
+            self.load_sprite()
+            self.flag = False
+        else:
+            self.check_data()
+            self.image = pg.image.load(f"""images/{self.tile_data}.png""").convert_alpha()
+            self.flag = False
+
+
+class Grid:
+    def __init__(self, game, data, width, height):
+        """Initialize a grid object with dimensions width x height that contains
+        Tile objects with specified data."""
+        self.width = width * TILEWIDTH
+        self.height = height * TILEHEIGHT
+        self.grid_data = [[data for x in range(width)] for y in range(height)]
+        if data == 10:
+            for row_nb, row in enumerate(self.grid_data):
+                for col_nb, tile in enumerate(row):
+                    self.grid_data[row_nb][col_nb] = Tile(self, game, random.randint(0, 1), row_nb, col_nb)
+        else:
+            for row_nb, row in enumerate(self.grid_data):
+                for col_nb, tile in enumerate(row):
+                    self.grid_data[row_nb][col_nb] = Tile(self, game, random.randint(2, 3), row_nb, col_nb)
+
+    def update_tile(self, data, x, y):
+        self.grid_data[x][y].flag = True
+        self.grid_data[x][y].data = data
+
+    def check_update_grid(self):
+        for row_nb, row in enumerate(self.grid_data):
             for col_nb, tile in enumerate(row):
-                if tile == 0:
-                    tile_data = '128x128 green tile'
-                if tile == 1:
-                    tile_data = 'overlay seed tile' #pixel square grass
-                if tile == 2:
-                    tile_data = 'overlay flower1 tile' #pixel square flower
-                if tile == 3:
-                    tile_data = 'overlay flower2 tile' #pixel square tree
-                if tile == 4:
-                    tile_data = 'dirt tile'
-                image = pg.image.load(f"""images/{tile_data}.png""").convert_alpha()
-                rect = image.get_rect()
-                x = row_nb
-                y = col_nb
-                # Convert cartesian to isometric coordinates
-                iso_x, iso_y = self.iso.convert_cart(x, y)
-                rect.x = iso_x
-                rect.y = iso_y
-                self.screen.blit(image, rect)'''
+                if tile.flag:
+                    tile.update_tile_image()
 

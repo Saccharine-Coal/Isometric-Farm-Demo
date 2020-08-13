@@ -16,9 +16,19 @@ class Generate:
             ]
         return self.map_data
 
-    def generate_map_data_blank(self):
+    def generate_map_data_blank(self, number=0):
         self.map_data = [
-            [0 for x in range(self.tilewidth)] for y in range(self.tileheight)
+            [number for x in range(self.tilewidth)] for y in range(self.tileheight)
             ]
         return self.map_data
+
+    def generate_random_number(self, start, end):
+        result = random.randint(start, end)
+        return result
+
+    def generate_tick(self, count):
+        result = random.randint(0,1)
+        if result == 0:
+            count =+ 1
+        return count
 
