@@ -1,118 +1,107 @@
-import pygame as pg
-import sys
-from os import path
+#!/usr/bin/python3.4
+# Setup Python ----------------------------------------------- #
+import pygame, sys
 
+# Setup pygame/window ---------------------------------------- #
+from pygame.locals import *
+from game import *
 
-from settings import *
-from sprites import *
-from generators import *
-from camera import *
-from converter import *
-import threading
-import time
-
-
-class Game:
-
+class Menu:
     def __init__(self):
-        """Initialize screen, pygame, map data, and settings."""
-        pg.init()
-        self.screen = pg.display.set_mode((WIDTH, HEIGHT))
-        pg.display.set_caption(TITLE)
-        self.clock = pg.time.Clock()
-        pg.key.set_repeat(500, 100)
-        self.gen = Generate()
-        self.iso = Converter()
-        self.interval = 5
+        self.mainClock = pygame.time.Clock()
+        pygame.init()
+        pygame.display.set_caption('game base')
+        self.screen = pygame.display.set_mode((500, 500),0,32)
 
-    def _run_thread(self):
-        """Method that runs forever."""
+        self.font = pygame.font.SysFont(None, 30)
+        self.click = False
+        self.main_menu()
+
+    def draw_text(self, text, font, color, surface, x, y):
+        textobj = font.render(text, 1, color)
+        textrect = textobj.get_rect()
+        textrect.topleft = (x, y)
+        surface.blit(textobj, textrect)
+
+    def main_menu(self):
         while True:
-            # Do something
-            print('Thread Running!')
-            self.grow()
-            time.sleep(self.interval)
 
+            self.screen.fill((0,0,0))
+            self.draw_text('main menu', self.font, (255, 255, 255), self.screen, 20, 20)
 
-    def new(self):
-        """Initialize all variables and do all the setup for a new game."""
-        self.all_sprites = pg.sprite.Group()
-        self.tiles = pg.sprite.Group()
-        self.grid_background = Grid(self, 2, W, H)
-        self.grid_foreground = Grid(self, 10, W, H)
-        self.player = Player(self, 2, 2)
-        self.camera = Camera(self.grid_background.width, self.grid_background.height)
-        thread = threading.Thread(target=self._run_thread, args=())
-        thread.start()                                  # Start the execution
+            mx, my = pygame.mouse.get_pos()
 
-    def run(self):
-        """Game loop."""
-        self.playing = True
-        while self.playing:
-            self.dt = self.clock.tick(FPS) / 1000
-            # Catch all events.
-            self.events()
-            # Update data.
-            self.update()
-            # Draw updated screen.
-            self.draw()
+            button_1 = pygame.Rect(50, 100, 200, 50)
+            button_2 = pygame.Rect(50, 200, 200, 50)
+            button_3 = pygame.Rect(50, 300, 200, 50)
+            if button_1.collidepoint((mx, my)):
+                if self.click:
+                    self.new_game()
+            if button_2.collidepoint((mx, my)):
+                if self.click:
+                    self.load_game()
+            if button_3.collidepoint((mx, my)):
+                if self.click:
+                    self.options()
+            pygame.draw.rect(self.screen, (255, 0, 0), button_1)
+            self.draw_text('New Game', self.font, (255, 255, 255), self.screen, 115, 115)
+            pygame.draw.rect(self.screen, (255, 0, 0), button_2)
+            self.draw_text('Load Game', self.font, (255, 255, 255), self.screen, 115, 215)
+            pygame.draw.rect(self.screen, (255, 0, 0), button_3)
+            self.draw_text('Options', self.font, (255, 255, 255), self.screen, 115, 315)
 
-    def quit(self):
-        """Quit the game."""
-        pg.quit()
-        sys.exit()
+            self.click = False
+            for event in pygame.event.get():
+                if event.type == QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if event.type == KEYDOWN:
+                    if event.key == K_ESCAPE:
+                        pygame.quit()
+                        sys.exit()
+                if event.type == MOUSEBUTTONDOWN:
+                    if event.button == 1:
+                        self.click = True
 
-    def update(self):
-        # Update everything here.
-        self.grid_background.check_update_grid()
-        self.grid_foreground.check_update_grid()
-        self.all_sprites.update()
-        self.camera.update(self.player)
+            pygame.display.update()
+            self.mainClock.tick(60)
 
-    def draw(self):
-        """Draw the screen."""
-        self.screen.fill(BGCOLOR)
-        for tile in self.tiles:
-            self.screen.blit(tile.image, self.camera.apply(tile))
-        for sprite in self.all_sprites:
-            self.screen.blit(sprite.image, self.camera.apply(sprite))
-        pg.display.flip()
+    def new_game(self):
+        running = True
+        # Create game object.
+        g = Game()
+        while running:
+            g.new()
+            # Main Game Loop
+            g.run()
+            running = g.playing
 
-    def events(self):
-        """Catch all events here."""
-        for event in pg.event.get():
-            if event.type == pg.QUIT:
-                self.quit()
-            if event.type == pg.KEYDOWN:
-                if event.key == pg.K_ESCAPE:
-                    self.quit()
-                if event.key == pg.K_LEFT:
-                    self.player.move(dx=-1)
-                if event.key == pg.K_RIGHT:
-                    self.player.move(dx=1)
-                if event.key == pg.K_UP:
-                    self.player.move(dy=-1)
-                if event.key == pg.K_DOWN:
-                    self.player.move(dy=1)
-                if event.key == pg.K_RETURN:
-                    x, y = self.player.current_position()
-                    self.grid_background.update_tile(2, x, y)
-                    self.grid_foreground.update_tile(4, x, y)
-                    self.grid_foreground.grid_data[x][y].grow = True
+    def load_game(self):
+        running = True
+        # Create game object.
+        g = Game()
+        while running:
+            g.load()
+            # Main Game Loop
+            g.run()
+            running = g.playing
 
-    def grow(self):
-        for row_nb, row in enumerate(self.grid_foreground.grid_data):
-            for col_nb, tile in enumerate(row):
-                if tile.grow:
-                    result = self.gen.generate_random_number(0, 1)
-                    if result == 0:
-                        tile.data += 1
-                        self.grid_foreground.update_tile(tile.data, row_nb, col_nb)
+    def options(self):
+        running = True
+        while running:
+            self.screen.fill((0,0,0))
+            self.draw_text('Options', self.font, (255, 255, 255), self.screen, 20, 20)
+            self.draw_text('Foo!', self.font, (255, 255, 255), self.screen, 250, 250)
+            for event in pygame.event.get():
+                if event.type == QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if event.type == KEYDOWN:
+                    if event.key == K_ESCAPE:
+                        running = False
 
+            pygame.display.update()
+            self.mainClock.tick(60)
 
-# Create game object.
-g = Game()
-while True:
-    g.new()
-    # Main Game Loop
-    g.run()
+m = Menu()
+
